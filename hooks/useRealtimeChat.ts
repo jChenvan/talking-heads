@@ -1,6 +1,9 @@
+'use client';
+
 import { useEffect, useRef, useState } from "react";
 
 export default function useRealtimeChat() {
+    const [prompt, setPrompt] = useState("");
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [events, setEvents] = useState<any[]>([]);
     const [dataChannel, setDataChannel] = useState<RTCDataChannel|null>(null);
@@ -126,5 +129,5 @@ export default function useRealtimeChat() {
         }
     },[dataChannel]);
 
-    return {isSessionActive, startSession, stopSession, sendTextMessage, events}
+    return {isSessionActive, startSession, stopSession, sendTextMessage, events, prompt, setPrompt}
 }
