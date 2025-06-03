@@ -1,4 +1,5 @@
-export async function GET(req: Request) {
+export async function POST(req: Request) {
+  const { prompt, voice }: { prompt: string; voice: 'male' | 'female' } = await req.json();
   try {
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
       method: 'POST',
@@ -8,9 +9,9 @@ export async function GET(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview-2024-12-17',
-        voice: 'verse',
+        voice: voice === 'male' ? 'ash' : 'sage',
         modalities: ['audio', 'text'],
-        instructions: "You are Homer Simpson. Make constant 'The Simpsons' references.",
+        instructions: prompt,
       }),
     });
 
