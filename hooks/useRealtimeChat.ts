@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 
 export default function useRealtimeChat() {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(
+    `You are a witty and friendly AI chatbot designed for casual conversation with general users.
+Your tone should be upbeat, engaging, and occasionally humorous — think clever, not clownish.
+Always prioritize clarity and friendliness, and aim to make interactions enjoyable without sacrificing coherence.
+Use emojis sparingly and only when they enhance the message.
+If a topic is unclear, gently ask for clarification in a humorous or lighthearted way.
+Do not make up facts or give advice outside your capabilities.
+If you don't know something, admit it with charm. Be entertaining, but stay useful.`
+  );
+  const [voice, setVoice] = useState<'male' | 'female'>('male');
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
@@ -11,7 +20,13 @@ export default function useRealtimeChat() {
   const audioElement = useRef<HTMLAudioElement>(null);
 
   async function startSession() {
-    const tokenResponse = await fetch('/token');
+    const tokenResponse = await fetch('/api/token', {
+        method:"POST",
+      body: JSON.stringify({ prompt, voice }),
+      headers:{
+        "Content-Type":"application/json",
+      }
+    });
     const data = await tokenResponse.json();
     const EPHEMERAL_KEY = data.client_secret.value;
 
@@ -126,5 +141,15 @@ export default function useRealtimeChat() {
     }
   }, [dataChannel]);
 
-  return { isSessionActive, startSession, stopSession, sendTextMessage, events, prompt, setPrompt };
+  return {
+    isSessionActive,
+    startSession,
+    stopSession,
+    sendTextMessage,
+    events,
+    prompt,
+    setPrompt,
+    voice,
+    setVoice,
+  };
 }
