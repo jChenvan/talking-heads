@@ -1,51 +1,55 @@
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 
-export default function useAudioVolume(audioRef:RefObject<HTMLAudioElement>) {
-    const animationIdRef = useRef<number>(null);
-    const rmsRef = useRef<number>(null);
+export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
+  const [rms, setRms] = useState(0);
+  const animationIdRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
-    useEffect(()=>{
-        const audio = audioRef.current;
-        if (!audio) return;
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !window.AudioContext) return;
 
-        const audioCtx = new window.AudioContext();
-        const source = audioCtx.createMediaElementSource(audio);
-        const analyser = audioCtx.createAnalyser();
+    const audioCtx = new AudioContext();
+    audioCtxRef.current = audioCtx;
 
-        analyser.fftSize = 256;
-        const bufferLength = analyser.fftSize;
-        const dataArray = new Uint8Array(bufferLength);
+    const source = audioCtx.createMediaElementSource(audio);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
 
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
+    const bufferLength = analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
 
-        const writeData = () => {
-            animationIdRef.current = requestAnimationFrame(writeData);
-            analyser.getByteTimeDomainData(dataArray);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
 
-            const sumSquares = dataArray.reduce((prev,curr)=>{
-                const normalized = (curr - 128)/128;
-                return prev + normalized * normalized;
-            }, 0);
+    const writeData = () => {
+      animationIdRef.current = requestAnimationFrame(writeData);
+      analyser.getByteTimeDomainData(dataArray);
 
-            rmsRef.current = Math.sqrt(sumSquares / bufferLength);
-        }
+      const sumSquares = dataArray.reduce((sum, val) => {
+        const normalized = (val - 128) / 128;
+        return sum + normalized * normalized;
+      }, 0);
 
-        const handlePlay = async () => {
-            if (audioCtx.state === "suspended") await audioCtx.resume();
-            writeData();
-        }
+      const rmsValue = Math.sqrt(sumSquares / bufferLength);
+      setRms(rmsValue);
+    };
 
-        audio.addEventListener('play', handlePlay);
+    const handlePlay = async () => {
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+      writeData();
+    };
 
-        return ()=>{
-            if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
-            audio.removeEventListener('play', handlePlay);
-            analyser.disconnect();
-            source.disconnect();
-            audioCtx.close();
-        }
-    },[audioRef]);
+    audio.addEventListener("play", handlePlay);
 
-    return rmsRef;
+    return () => {
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+      audio.removeEventListener("play", handlePlay);
+      source.disconnect();
+      analyser.disconnect();
+      audioCtx.close();
+    };
+  }, [audioRef]);
+
+  return rms;
 }
