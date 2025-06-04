@@ -1,9 +1,9 @@
 import { RefObject, useEffect, useRef, useState } from "react";
 
 export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
-  const [rms, setRms] = useState(0);
-  const animationIdRef = useRef<number | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
+    const rmsRef = useRef<number>(null);
+  const animationIdRef = useRef<number>(null);
+  const audioCtxRef = useRef<AudioContext>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -32,7 +32,7 @@ export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
       }, 0);
 
       const rmsValue = Math.sqrt(sumSquares / bufferLength);
-      setRms(rmsValue);
+      rmsRef.current = rmsValue;
     };
 
     const handlePlay = async () => {
@@ -51,5 +51,5 @@ export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
     };
   }, [audioRef]);
 
-  return rms;
+  return rmsRef;
 }
