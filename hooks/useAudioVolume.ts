@@ -1,12 +1,11 @@
-import { RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef } from 'react';
 
-export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
-    const rmsRef = useRef<number>(null);
+export default function useAudioVolume(audio: HTMLAudioElement|null) {
+  const rmsRef = useRef<number>(0);
   const animationIdRef = useRef<number>(null);
   const audioCtxRef = useRef<AudioContext>(null);
 
   useEffect(() => {
-    const audio = audioRef.current;
     if (!audio || !window.AudioContext) return;
 
     const audioCtx = new AudioContext();
@@ -36,20 +35,20 @@ export default function useAudioVolume(audioRef: RefObject<HTMLAudioElement>) {
     };
 
     const handlePlay = async () => {
-      if (audioCtx.state === "suspended") await audioCtx.resume();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
       writeData();
     };
 
-    audio.addEventListener("play", handlePlay);
+    audio.addEventListener('play', handlePlay);
 
     return () => {
       if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
-      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener('play', handlePlay);
       source.disconnect();
       analyser.disconnect();
       audioCtx.close();
     };
-  }, [audioRef]);
+  }, [audio]);
 
   return rmsRef;
 }

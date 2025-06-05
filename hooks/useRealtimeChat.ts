@@ -17,28 +17,29 @@ If you don't know something, admit it with charm. Be entertaining, but stay usef
   const [events, setEvents] = useState<any[]>([]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const peerConnection = useRef<RTCPeerConnection>(null);
-  const audioElement = useRef<HTMLAudioElement>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement|null>(null);
 
   async function startSession() {
     const tokenResponse = await fetch('/api/token', {
-        method:"POST",
+      method: 'POST',
       body: JSON.stringify({ prompt, voice }),
-      headers:{
-        "Content-Type":"application/json",
-      }
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
     const data = await tokenResponse.json();
     const EPHEMERAL_KEY = data.client_secret.value;
 
     const pc = new RTCPeerConnection();
 
-    audioElement.current = document.createElement('audio');
-    audioElement.current.autoplay = true;
+    const audio = document.createElement('audio');
+    audio.autoplay = true;
     pc.ontrack = (e) => {
-      if (audioElement.current) {
-        audioElement.current.srcObject = e.streams[0];
+      if (audio) {
+        audio.srcObject = e.streams[0];
       }
     };
+    setAudioElement(audio);
 
     const ms = await navigator.mediaDevices.getUserMedia({
       audio: true,
@@ -84,6 +85,7 @@ If you don't know something, admit it with charm. Be entertaining, but stay usef
 
     setIsSessionActive(false);
     setDataChannel(null);
+    setAudioElement(null);
     peerConnection.current = null;
   }
 
@@ -151,5 +153,6 @@ If you don't know something, admit it with charm. Be entertaining, but stay usef
     setPrompt,
     voice,
     setVoice,
+    audioElement,
   };
 }
