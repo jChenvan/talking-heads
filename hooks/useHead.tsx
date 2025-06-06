@@ -24,11 +24,6 @@ export default function useHead() {
         const boneCorrection = new THREE.Quaternion();
         boneCorrection.setFromEuler(new THREE.Euler(Math.PI/2,0,0));
 
-        /* const testGeo = new THREE.BoxGeometry(0.2,0.2);
-        const testMat = new THREE.MeshBasicMaterial({color:0xFF0000});
-        const testCube = new THREE.Mesh(testGeo,testMat);
-        scene.add(testCube); */
-
         const geo = new THREE.PlaneGeometry(10,10,1,1);
         const mat = new THREE.MeshBasicMaterial({color:0x00FF00, transparent:true, opacity: 0});
         const intersectPlane = new THREE.Mesh(geo, mat);
@@ -42,41 +37,17 @@ export default function useHead() {
         const url = '/homersHeadRigged.glb';
         gltfLoader.load(url,data=>{
             const {children} = data.scene;
-            /* console.dir(children, {depth:null}); */
 
             const rig = children.find(x=>(x.name === "Armature"));
             const mesh = rig?.children[0] as THREE.SkinnedMesh;
             const bones = mesh.skeleton.bones;
             const head = bones.find(bone=>bone.name.includes("head"));
             const eyes = bones.filter(bone=>bone.name.includes("eye"));
-            /* const isolaters:THREE.Object3D<THREE.Object3DEventMap>[] = [];
-
-            eyes.forEach(eye=>{
-                const isolate = new THREE.Object3D();
-                isolate.position.copy(eye.position);
-                eye.position.set(0,0,0);
-
-                const parent = eye.parent;
-
-                parent?.remove(eye);
-                parent?.add(isolate);
-                isolate.add(eye);
-
-                isolaters.push(isolate);
-            }); */
 
             headAt.current = target => {
                 if (!head) return;
-                /* const localTarget = head.parent?.worldToLocal(target.clone());
-                if (localTarget) head.lookAt(localTarget); */
 
                 head.lookAt(target);
-
-                /* isolaters.forEach(isolate=>{
-                    const worldQuaternion = new THREE.Quaternion();
-                    head.getWorldQuaternion(worldQuaternion);
-                    isolate.quaternion.copy(worldQuaternion.invert());
-                }); */
             };
             eyesAt.current = target => eyes.forEach(eye=>{
                 const localTarget = eye.parent?.worldToLocal(target.clone());
@@ -99,8 +70,6 @@ export default function useHead() {
                 if (intersects.length === 0) return; 
 
                 const {point} = intersects[0];
-
-                /* testCube.position.set(point.x,point.y,point.z); */
 
                 setMousePos(point);
             }, 100));
