@@ -16,7 +16,7 @@ export default function Chat() {
 
   useEffect(()=>{
     if (mousePos && headAt.current) headAt.current(new Vector3(mousePos.x,mousePos.y,10));
-    if (mousePos && eyesAt.current) eyesAt.current(new Vector3(mousePos.x,mousePos.y,5));
+    if (mousePos && eyesAt.current) eyesAt.current(new Vector3(mousePos.x,mousePos.y,2));
   },[mousePos]);
 
   useEffect(()=>{

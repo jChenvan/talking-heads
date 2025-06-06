@@ -49,7 +49,7 @@ export default function useHead() {
             const bones = mesh.skeleton.bones;
             const head = bones.find(bone=>bone.name.includes("head"));
             const eyes = bones.filter(bone=>bone.name.includes("eye"));
-            const isolaters:THREE.Object3D<THREE.Object3DEventMap>[] = [];
+            /* const isolaters:THREE.Object3D<THREE.Object3DEventMap>[] = [];
 
             eyes.forEach(eye=>{
                 const isolate = new THREE.Object3D();
@@ -63,7 +63,7 @@ export default function useHead() {
                 isolate.add(eye);
 
                 isolaters.push(isolate);
-            });
+            }); */
 
             headAt.current = target => {
                 if (!head) return;
@@ -72,11 +72,11 @@ export default function useHead() {
 
                 head.lookAt(target);
 
-                isolaters.forEach(isolate=>{
+                /* isolaters.forEach(isolate=>{
                     const worldQuaternion = new THREE.Quaternion();
                     head.getWorldQuaternion(worldQuaternion);
                     isolate.quaternion.copy(worldQuaternion.invert());
-                });
+                }); */
             };
             eyesAt.current = target => eyes.forEach(eye=>{
                 const localTarget = eye.parent?.worldToLocal(target.clone());
