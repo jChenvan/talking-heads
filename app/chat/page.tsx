@@ -6,12 +6,18 @@ import useHead from '@/hooks/useHead';
 import useRealtimeChat from '@/hooks/useRealtimeChat';
 import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
+import { Vector3 } from 'three';
 
 export default function Chat() {
-  const {canvas, setBlendShape, mousePos} = useHead();
+  const {canvas, setBlendShape, mousePos, eyesAt, headAt} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const rmsRef = useAudioVolume(chatbot.audioElement);
+
+  useEffect(()=>{
+    if (mousePos && headAt.current) headAt.current(new Vector3(mousePos.x,mousePos.y,10));
+    if (mousePos && eyesAt.current) eyesAt.current(new Vector3(mousePos.x,mousePos.y,5));
+  },[mousePos]);
 
   useEffect(()=>{
     let id:number;
@@ -37,6 +43,7 @@ export default function Chat() {
 
   return (
     <div className="h-screen w-screen flex justify-center items-center">
+      <div className='absolute top-0 left-0'>{mousePos && `POSITION: ${mousePos.x}, ${mousePos.y}, ${mousePos.z}`}</div>
       <div className="bg-gray-900 p-6 rounded-xl flex gap-2">
         <div ref={canvasContainerRef}></div>
         <div className="bg-gray-700 p-4 rounded-lg select-none">
