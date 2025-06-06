@@ -8,10 +8,22 @@ import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
 
 export default function Chat() {
-  const {canvas} = useHead();
+  const {canvas, setBlendShape, mousePos} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const rmsRef = useAudioVolume(chatbot.audioElement);
+
+  useEffect(()=>{
+    let id:number;
+    function animate() {
+      id = requestAnimationFrame(animate);
+      setBlendShape.current?.(Math.min(rmsRef.current*5,1));
+    }
+
+    animate();
+
+    return ()=>cancelAnimationFrame(id);
+  },[]);
 
   useEffect(()=>{
     if (canvas && canvasContainerRef.current) {
