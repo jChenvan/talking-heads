@@ -9,14 +9,19 @@ import { useEffect, useRef } from 'react';
 import { Vector3 } from 'three';
 
 export default function Chat() {
-  const {canvas, setBlendShape, mousePos, eyesAt, headAt} = useHead();
+  const {canvas, setBlendShape, mousePos, eyesAt, headAt, defaultEyeTarget} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const rmsRef = useAudioVolume(chatbot.audioElement);
 
   useEffect(()=>{
-    if (mousePos && headAt.current) headAt.current(new Vector3(mousePos.x,mousePos.y,10));
-    if (mousePos && eyesAt.current) eyesAt.current(new Vector3(mousePos.x,mousePos.y,2));
+    if (mousePos) {
+      headAt.current?.(new Vector3(mousePos.x,mousePos.y,10));
+      eyesAt.current?.(new Vector3(mousePos.x,mousePos.y,2));
+    } else {
+      headAt.current?.(new Vector3(0,0,10));
+      eyesAt.current?.(defaultEyeTarget.current || new Vector3(0,0,2));
+    }
   },[mousePos]);
 
   useEffect(()=>{
