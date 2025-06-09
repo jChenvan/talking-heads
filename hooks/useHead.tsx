@@ -155,7 +155,7 @@ export default function useHead() {
                 const {point} = intersects[0];
 
                 setMousePos(point);
-            }, 100);
+            }, 16);
 
             domElement.addEventListener("mousemove", onMouseMove);
             domElement.addEventListener("mouseenter", ()=>{
