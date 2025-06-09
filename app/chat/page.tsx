@@ -6,23 +6,24 @@ import useHead from '@/hooks/useHead';
 import useRealtimeChat from '@/hooks/useRealtimeChat';
 import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 
 export default function Chat() {
-  const {canvas, setBlendShape, mousePos, eyesAt, headAt, defaultEyeTarget} = useHead();
+  const {canvas, setBlendShape, mousePos, eyesAt, headAt, toDefaultState, isTracking} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const rmsRef = useAudioVolume(chatbot.audioElement);
 
   useEffect(()=>{
-    if (mousePos) {
+    if (mousePos && isTracking) {
       headAt.current?.(new Vector3(mousePos.x,mousePos.y,10));
       eyesAt.current?.(new Vector3(mousePos.x,mousePos.y,2));
-    } else {
-      headAt.current?.(new Vector3(0,0,10));
-      eyesAt.current?.(defaultEyeTarget.current || new Vector3(0,0,2));
+    } else if (mousePos) {
+      /* headAt.current?.(new Vector3(0,0,10));
+      eyesAt.current?.(defaultEyeTarget.current || new Vector3(0,0,2)); */
+      toDefaultState.current?.(mousePos);
     }
-  },[mousePos]);
+  },[mousePos,isTracking]);
 
   useEffect(()=>{
     let id:number;

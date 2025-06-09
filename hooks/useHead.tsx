@@ -1,5 +1,6 @@
 import throttle from "@/utils/throttle";
 import { use, useEffect, useRef, useState } from "react";
+import { start } from "repl";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
@@ -7,9 +8,10 @@ export default function useHead() {
     const [canvas, setCanvas] = useState<HTMLCanvasElement|null>(null);
     const setBlendShape = useRef<(val:number)=>void>(null);
     const [mousePos, setMousePos] = useState<THREE.Vector3|null>(null);
+    const [isTracking, setIsTracking] = useState(true);
     const eyesAt = useRef<(target:THREE.Vector3)=>void>(null);
     const headAt = useRef<(target:THREE.Vector3)=>void>(null);
-    const defaultEyeTarget = useRef<THREE.Vector3>(null);
+    const toDefaultState = useRef<(startTarget:THREE.Vector3)=>void>(null);
 
     useEffect(()=>{
         const scene = new THREE.Scene();
@@ -47,17 +49,20 @@ export default function useHead() {
             const eyes = bones.filter(bone=>bone.name.includes("eye"));
             const eyeOffsets:THREE.Vector3[] = [];
 
-            const defaultEyeTargetCurrent = new THREE.Vector3();
+            head?.updateMatrixWorld();
+            const headPos = new THREE.Vector3();
+            head?.getWorldPosition(headPos);
+            const defaultHeadTarget = new THREE.Vector3(headPos.x, headPos.y, headPos.z + 10);
+
+            const defaultEyeTarget = new THREE.Vector3();
             eyes.forEach(eye=>{
                 eye.updateMatrixWorld();
                 const eyePos = new THREE.Vector3();
                 eye.getWorldPosition(eyePos);
-                defaultEyeTargetCurrent.add(eyePos);
+                defaultEyeTarget.add(eyePos);
             });
-            defaultEyeTargetCurrent.divideScalar(eyes.length);
-            defaultEyeTargetCurrent.z += 2;
-
-            defaultEyeTarget.current = defaultEyeTargetCurrent;
+            defaultEyeTarget.divideScalar(eyes.length);
+            defaultEyeTarget.z += 2;
 
             eyes.forEach(eye=>{
                 const eyePos = new THREE.Vector3();
@@ -103,6 +108,35 @@ export default function useHead() {
                 eye.quaternion.multiply(boneCorrection);
                 eye.updateMatrixWorld();
             });
+            toDefaultState.current = (startTarget:THREE.Vector3) => {
+                const startTime = performance.now();
+
+                const animate = () => {
+                    const progress = (performance.now() - startTime) / 200;
+                    if (progress > 1) {
+                        headAt.current?.(defaultHeadTarget);
+                        eyesAt.current?.(defaultEyeTarget);
+                        return;
+                    }
+
+                    requestAnimationFrame(animate);
+
+                    const eyeTarget = defaultEyeTarget.clone();
+                    eyeTarget.multiplyScalar(progress);
+                    eyeTarget.addScaledVector(startTarget, 1 - progress);
+                    eyeTarget.z = 2;
+
+                    const headTarget = defaultHeadTarget.clone();
+                    headTarget.multiplyScalar(progress);
+                    headTarget.addScaledVector(startTarget, 1 - progress);
+                    headTarget.z = 10;
+
+                    headAt.current?.(headTarget);
+                    eyesAt.current?.(eyeTarget);
+                }
+
+                animate();
+            };
             
             const camera = children.find(x=>(x.name === "Camera")) as THREE.Camera;
 
@@ -124,10 +158,13 @@ export default function useHead() {
             }, 100);
 
             domElement.addEventListener("mousemove", onMouseMove);
-            domElement.addEventListener("mouseenter", ()=>domElement.addEventListener("mousemove", onMouseMove));
+            domElement.addEventListener("mouseenter", ()=>{
+                domElement.addEventListener("mousemove", onMouseMove);
+                setIsTracking(true);
+            });
             domElement.addEventListener("mouseleave", ()=>{
                 domElement.removeEventListener("mousemove", onMouseMove);
-                setMousePos(null);
+                setIsTracking(false);
             });
 
             setBlendShape.current = (val:number)=>{mesh.morphTargetInfluences![0] = val};
@@ -153,5 +190,5 @@ export default function useHead() {
         });
     },[]);
 
-    return {canvas, setBlendShape, mousePos, eyesAt, headAt, defaultEyeTarget};
+    return {canvas, setBlendShape, mousePos, eyesAt, headAt, toDefaultState, isTracking};
 }
