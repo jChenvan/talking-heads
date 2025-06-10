@@ -9,21 +9,10 @@ import { useEffect, useRef } from 'react';
 import { Quaternion, Vector3 } from 'three';
 
 export default function Chat() {
-  const {canvas, setBlendShape, mousePos, eyesAt, headAt, toDefaultState, isTracking} = useHead();
+  const {canvas, setBlendShape, eyesAt, headAt, toDefaultState, isTracking} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const rmsRef = useAudioVolume(chatbot.audioElement);
-
-  useEffect(()=>{
-    if (mousePos && isTracking) {
-      headAt.current?.(new Vector3(mousePos.x,mousePos.y,10));
-      eyesAt.current?.(new Vector3(mousePos.x,mousePos.y,2));
-    } else if (mousePos) {
-      /* headAt.current?.(new Vector3(0,0,10));
-      eyesAt.current?.(defaultEyeTarget.current || new Vector3(0,0,2)); */
-      toDefaultState.current?.(mousePos);
-    }
-  },[mousePos,isTracking]);
 
   useEffect(()=>{
     let id:number;
@@ -49,7 +38,6 @@ export default function Chat() {
 
   return (
     <div className="h-screen w-screen flex justify-center items-center">
-      <div className='absolute top-0 left-0'>{mousePos && `POSITION: ${mousePos.x}, ${mousePos.y}, ${mousePos.z}`}</div>
       <div className="bg-gray-900 p-6 rounded-xl flex gap-2">
         <div ref={canvasContainerRef}></div>
         <div className="bg-gray-700 p-4 rounded-lg select-none">

@@ -1,17 +1,18 @@
 import throttle from "@/utils/throttle";
-import { use, useEffect, useRef, useState } from "react";
-import { start } from "repl";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 
 export default function useHead() {
     const [canvas, setCanvas] = useState<HTMLCanvasElement|null>(null);
     const setBlendShape = useRef<(val:number)=>void>(null);
-    const [mousePos, setMousePos] = useState<THREE.Vector3|null>(null);
-    const [isTracking, setIsTracking] = useState(true);
+    const mousePos = useRef<THREE.Vector3>(null);
+    const isTracking = useRef(true);
     const eyesAt = useRef<(target:THREE.Vector3)=>void>(null);
     const headAt = useRef<(target:THREE.Vector3)=>void>(null);
-    const toDefaultState = useRef<(startTarget:THREE.Vector3)=>void>(null);
+    const toDefaultState = useRef<(eyeStart:THREE.Vector3, headStart:THREE.Vector3)=>void>(null);
+    const eyeTarg = useRef<THREE.Vector3>(null);
+    const headTarg = useRef<THREE.Vector3>(null);
 
     useEffect(()=>{
         const scene = new THREE.Scene();
@@ -108,7 +109,7 @@ export default function useHead() {
                 eye.quaternion.multiply(boneCorrection);
                 eye.updateMatrixWorld();
             });
-            toDefaultState.current = (startTarget:THREE.Vector3) => {
+            toDefaultState.current = (eyeStart:THREE.Vector3, headStart:THREE.Vector3) => {
                 const startTime = performance.now();
 
                 const animate = () => {
@@ -123,12 +124,12 @@ export default function useHead() {
 
                     const eyeTarget = defaultEyeTarget.clone();
                     eyeTarget.multiplyScalar(progress);
-                    eyeTarget.addScaledVector(startTarget, 1 - progress);
+                    eyeTarget.addScaledVector(eyeStart, 1 - progress);
                     eyeTarget.z = 2;
 
                     const headTarget = defaultHeadTarget.clone();
                     headTarget.multiplyScalar(progress);
-                    headTarget.addScaledVector(startTarget, 1 - progress);
+                    headTarget.addScaledVector(headStart, 1 - progress);
                     headTarget.z = 10;
 
                     headAt.current?.(headTarget);
@@ -154,17 +155,18 @@ export default function useHead() {
 
                 const {point} = intersects[0];
 
-                setMousePos(point);
+                mousePos.current = point;
             }, 16);
 
             domElement.addEventListener("mousemove", onMouseMove);
             domElement.addEventListener("mouseenter", ()=>{
                 domElement.addEventListener("mousemove", onMouseMove);
-                setIsTracking(true);
+                isTracking.current = true;
             });
             domElement.addEventListener("mouseleave", ()=>{
                 domElement.removeEventListener("mousemove", onMouseMove);
-                setIsTracking(false);
+                isTracking.current = false;
+                toDefaultState.current?.(eyeTarg.current || new THREE.Vector3(0, 0, 2), headTarg.current || new THREE.Vector3(0, 0, 10));
             });
 
             setBlendShape.current = (val:number)=>{mesh.morphTargetInfluences![0] = val};
@@ -182,8 +184,36 @@ export default function useHead() {
 
             scene.environment = textureCube;
 
+            const speed = 0.1;
+
             function animate() {
                 renderer.render( scene, camera as THREE.Camera);
+
+                if (isTracking.current && mousePos.current && eyeTarg.current && headTarg.current) {
+                    const eyeTo = mousePos.current.clone();
+                    eyeTo.z = 2;
+
+                    const headTo = mousePos.current.clone();
+                    headTo.z = 10;
+
+                    const eyeDir = eyeTo.clone().sub(eyeTarg.current) || new THREE.Vector3();
+                    const headDir = headTo.clone().sub(headTarg.current) || new THREE.Vector3();
+
+                    const eyeDirLen = eyeDir.length();
+                    const headDirLen = headDir.length();
+
+                    const eyeDirNorm = eyeDirLen > 0 ? eyeDir.normalize() : new THREE.Vector3();
+                    const headDirNorm = headDirLen > 0 ? headDir.normalize() : new THREE.Vector3();
+
+                    eyeTarg.current.addScaledVector(eyeDirNorm, Math.min(speed, eyeDirLen));
+                    headTarg.current.addScaledVector(headDirNorm, Math.min(speed, headDirLen));
+
+                    eyesAt.current?.(eyeTarg.current);
+                    headAt.current?.(headTarg.current);
+                } else {
+                    eyeTarg.current = defaultEyeTarget.clone();
+                    headTarg.current = defaultHeadTarget.clone();
+                }
             }
 
             renderer.setAnimationLoop( animate );
