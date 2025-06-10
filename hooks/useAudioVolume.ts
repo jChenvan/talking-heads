@@ -1,9 +1,10 @@
-import { RefObject, useEffect, useRef } from 'react';
+import { RefObject, use, useEffect, useRef, useState } from 'react';
 
-export default function useAudioVolume(audio: HTMLAudioElement|null) {
+export default function useAudioVolume() {
   const rmsRef = useRef<number>(0);
   const animationIdRef = useRef<number>(null);
   const audioCtxRef = useRef<AudioContext>(null);
+  const [audio,setAudio] = useState<HTMLAudioElement|null>(null);
 
   useEffect(() => {
     if (!audio || !window.AudioContext) return;
@@ -50,5 +51,5 @@ export default function useAudioVolume(audio: HTMLAudioElement|null) {
     };
   }, [audio]);
 
-  return rmsRef;
+  return {rmsRef, setAudio, audio};
 }

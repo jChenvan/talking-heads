@@ -6,25 +6,29 @@ import useHead from '@/hooks/useHead';
 import useRealtimeChat from '@/hooks/useRealtimeChat';
 import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
-import { Quaternion, Vector3 } from 'three';
 
 export default function Chat() {
-  const {canvas, setBlendShape, eyesAt, headAt, toDefaultState, isTracking} = useHead();
+  const {canvas, setMouthOpen} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
-  const rmsRef = useAudioVolume(chatbot.audioElement);
+  const {rmsRef, setAudio, audio} = useAudioVolume();
 
   useEffect(()=>{
-    let id:number;
-    function animate() {
-      id = requestAnimationFrame(animate);
-      setBlendShape.current?.(Math.min(rmsRef.current*5,1));
+    if (audio) {
+      let id:number;
+      function animate() {
+        id = requestAnimationFrame(animate);
+        setMouthOpen(Math.min(rmsRef.current*5,1));
+      }
+
+      animate();
+
+      return ()=>cancelAnimationFrame(id);
+    } else {
+      const testAudio = new Audio('/test.mp3');
+      setAudio( testAudio /* chatbot.audioElement */);
     }
-
-    animate();
-
-    return ()=>cancelAnimationFrame(id);
-  },[]);
+  },[audio, chatbot]);
 
   useEffect(()=>{
     if (canvas && canvasContainerRef.current) {
@@ -38,8 +42,9 @@ export default function Chat() {
 
   return (
     <div className="h-screen w-screen flex justify-center items-center">
+      <button onClick={()=>{if (audio) audio.play();}}>PLAY</button>
       <div className="bg-gray-900 p-6 rounded-xl flex gap-2">
-        <div ref={canvasContainerRef}></div>
+        <div ref={canvasContainerRef} className='bg-gray-950 rounded-lg'></div>
         <div className="bg-gray-700 p-4 rounded-lg select-none">
           <h1 className="mb-1.5">
             Prompt
