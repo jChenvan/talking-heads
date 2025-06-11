@@ -1,5 +1,5 @@
 import throttle from "@/utils/throttle";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
 
@@ -32,7 +32,7 @@ export default function useHead() {
         animate();
     }
 
-    const getSceneData = useCallback(()=>{
+    const sceneData = useMemo(()=>{
         if (!gltf) return null;
 
         const scene = gltf.scene;
@@ -44,6 +44,7 @@ export default function useHead() {
 
         let mouth:THREE.SkinnedMesh|null = null;
         let face:THREE.SkinnedMesh|null = null;
+
 
         meshes.forEach(mesh=>{
             if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
@@ -74,9 +75,7 @@ export default function useHead() {
     },[]);
 
     useEffect(()=>{
-        if (!gltf) return;
-        const sceneData = getSceneData();
-        if (!sceneData) return;
+        if (!gltf || !sceneData) return;
         const {camera, meshes, headBone, eyeBones, face, mouth} = sceneData;
 
         const eyeTargetDistance = 0.5;
@@ -295,17 +294,31 @@ export default function useHead() {
         }
 
         renderer.setAnimationLoop( animate );
-    }, [getSceneData]);
+    }, [sceneData]);
 
-    function nod() {
+    const nod = useCallback(() => {
+        if (!sceneData) return;
         const duration = 1000;
         const start = performance.now();
+        const rightLidIndex = sceneData.face.morphTargetDictionary?.["RightLid"] || 0;
+        const leftLidIndex = sceneData.face.morphTargetDictionary?.["LeftLid"] || 0;
 
         const animate = () => {
             const progress = (performance.now() - start) / duration;
             if (progress >= 1) {
                 targetOffset.current.set(0, 0, 10);
+                sceneData.face.morphTargetInfluences![leftLidIndex] = 0;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = 0;
                 return;
+            } else if (progress >= 0.8) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = -5*progress + 5;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = -5*progress + 5;
+            } else if (progress >= 0.2) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = 1;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = 1;
+            } else if (progress >= 0) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = 5*progress;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = 5*progress;
             }
 
             requestAnimationFrame(animate);
@@ -315,17 +328,29 @@ export default function useHead() {
         }
 
         animate();
-    }
+    }, [sceneData]);
 
-    function shake() {
+    const shake = useCallback(() => {
+        if (!sceneData) return;
         const duration = 1000;
         const start = performance.now();
+        const rightLidIndex = sceneData.face.morphTargetDictionary?.["RightLid"] || 0;
+        const leftLidIndex = sceneData.face.morphTargetDictionary?.["LeftLid"] || 0;
 
         const animate = () => {
             const progress = (performance.now() - start) / duration;
             if (progress >= 1) {
                 targetOffset.current.set(0, 0, 10);
                 return;
+            } else if (progress >= 0.8) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = -5*progress + 5;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = -5*progress + 5;
+            } else if (progress >= 0.2) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = 1;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = 1;
+            } else if (progress >= 0) {
+                sceneData.face.morphTargetInfluences![leftLidIndex] = 5*progress;
+                sceneData.face.morphTargetInfluences![rightLidIndex] = 5*progress;
             }
 
             requestAnimationFrame(animate);
@@ -335,7 +360,7 @@ export default function useHead() {
         }
 
         animate();
-    }
+    }, [sceneData]);
 
 
 
