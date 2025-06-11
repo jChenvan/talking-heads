@@ -4,57 +4,81 @@ import * as THREE from "three";
 import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
 
 export default function useHead() {
-    const [camera, setCamera] = useState<THREE.Camera|null>(null);
-    const [meshes, setMeshes] = useState<THREE.SkinnedMesh[]>([]);
-    const [headBone, setHeadBone] = useState<THREE.Bone|null>(null);
-    const [eyeBones, setEyeBones] = useState<THREE.Bone[]>([]);
+    const [gltf, setGltf] = useState<GLTF|null>(null);
 
     const [canvas, setCanvas] = useState<HTMLCanvasElement|null>(null);
     const mousePos = useRef<THREE.Vector3>(null);
     const isTracking = useRef(true);
     const eyeTarg = useRef<THREE.Vector3>(null);
     const headTarg = useRef<THREE.Vector3>(null);
-    const [isHappy, setIsHappy] = useState<boolean>(true);
+    const mouthOpen = useRef(0);
+    const happiness = useRef(1);
+    const targetOffset = useRef(new THREE.Vector3(0, 0, 10));
 
-    const setMouthOpen = useCallback((val:number)=>{
-        const shape = isHappy ? "happyOpen" : "angryOpen";
+    function setIsHappy (IsHappy:boolean) {
+        const start = performance.now();
+        const duration = 500;
+        const animate = () => {
+            if ((IsHappy && happiness.current >= 1) || (!IsHappy && happiness.current <= 0)) {
+                happiness.current = IsHappy ? 1 : 0;
+                return;
+            };
+            requestAnimationFrame(animate);
+            const progress = (performance.now() - start) / duration;
+            if (IsHappy) happiness.current = progress;
+            else happiness.current = 1 - progress;
+        }
+
+        animate();
+    }
+
+    const getSceneData = useCallback(()=>{
+        if (!gltf) return null;
+
+        const scene = gltf.scene;
+        const camera = gltf.cameras[0] || new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        const meshes:THREE.SkinnedMesh[] = [];
+        scene.traverse(child=>{
+            if (child.type === "SkinnedMesh") meshes.push(child as THREE.SkinnedMesh);
+        });
+
+        let mouth:THREE.SkinnedMesh|null = null;
+        let face:THREE.SkinnedMesh|null = null;
+
         meshes.forEach(mesh=>{
             if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
-                if (mesh.morphTargetDictionary[shape] || mesh.morphTargetDictionary[shape] === 0) {
-                    const index = mesh.morphTargetDictionary[shape];
-                    mesh.morphTargetInfluences[index] = val;
-                }
-                if (mesh.morphTargetDictionary["Open"] || mesh.morphTargetDictionary["Open"] === 0) {
-                    const index = mesh.morphTargetDictionary["Open"];
-                    mesh.morphTargetInfluences[index] = val;
-                }
+                if (mesh.morphTargetDictionary["Open"] || mesh.morphTargetDictionary["Open"] === 0) mouth = mesh;
+                else face = mesh;
             }
-        })
-    }, [isHappy, meshes]);
+        });
+
+        if (!mouth) mouth = new THREE.SkinnedMesh();
+        if (!face) face = new THREE.SkinnedMesh();
+
+        const headBone = scene.getObjectByName("head") as THREE.Bone;
+        const eyeBones:THREE.Bone[] = [
+            scene.getObjectByName("Reye") as THREE.Bone,
+            scene.getObjectByName("Leye") as THREE.Bone
+        ];
+
+        return {camera, meshes, headBone, eyeBones, face, mouth};
+    },[gltf]);
 
     useEffect(()=>{
         const url = "/testMan.glb"/* '/homersHeadRigged.glb' */;
         const gltfLoader = new GLTFLoader();
 
         gltfLoader.load(url,data=>{
-            setCamera(data.cameras[0]);
-
-            const meshes:THREE.SkinnedMesh[] = [];
-            data.scene.traverse((child)=>{
-                if (child.type === "SkinnedMesh") meshes.push(child as THREE.SkinnedMesh);
-            });
-            setMeshes(meshes);
-
-            setHeadBone(data.scene.getObjectByName("head") as THREE.Bone);
-            setEyeBones([
-                data.scene.getObjectByName("Reye") as THREE.Bone,
-                data.scene.getObjectByName("Leye") as THREE.Bone
-            ]);
+            setGltf(data);
         });
     },[]);
 
     useEffect(()=>{
-        if (!camera || meshes.length === 0 || !headBone || eyeBones.length === 0) return;
+        if (!gltf) return;
+        const sceneData = getSceneData();
+        if (!sceneData) return;
+        const {camera, meshes, headBone, eyeBones, face, mouth} = sceneData;
+
         const eyeTargetDistance = 0.5;
         const headTargetDistance = 1;
         const bobbingAmplitude = 0.005;
@@ -226,6 +250,14 @@ export default function useHead() {
         function animate() {
             renderer.render( scene, camera as THREE.Camera);
 
+            if (face && mouth) {
+                mouth.morphTargetInfluences![0] = mouthOpen.current;
+                face.morphTargetInfluences![0] = (1 - mouthOpen.current) * happiness.current;
+                face.morphTargetInfluences![face.morphTargetDictionary!["angryClosed"]] = (1 - mouthOpen.current) * (1 - happiness.current);
+                face.morphTargetInfluences![face.morphTargetDictionary!["happyOpen"]] = mouthOpen.current * happiness.current;
+                face.morphTargetInfluences![face.morphTargetDictionary!["angryOpen"]] = mouthOpen.current * (1 - happiness.current);
+            }
+
             if (headBone) {
                 headBone.position.y = Math.sin((performance.now() - start) * Math.PI / 3000) * bobbingAmplitude + headPos.y / 2;
                 lockEyesToHead();
@@ -254,12 +286,58 @@ export default function useHead() {
                 headTarg.current = defaultHeadTarget.clone();
             }
 
-            eyesAt(eyeTarg.current);
-            headAt(headTarg.current);
+            const quaternion = headBone.quaternion;
+            const targetOffsetWithRotation = targetOffset.current.clone();
+            targetOffsetWithRotation.applyQuaternion(quaternion);
+
+            eyesAt(eyeTarg.current.clone().add(targetOffsetWithRotation));
+            headAt(headTarg.current.clone().add(targetOffsetWithRotation));
         }
 
         renderer.setAnimationLoop( animate );
-    },[camera, meshes, headBone, eyeBones]);
+    }, [getSceneData]);
 
-    return {canvas, setMouthOpen, setIsHappy};
+    function nod() {
+        const duration = 1000;
+        const start = performance.now();
+
+        const animate = () => {
+            const progress = (performance.now() - start) / duration;
+            if (progress >= 1) {
+                targetOffset.current.set(0, 0, 10);
+                return;
+            }
+
+            requestAnimationFrame(animate);
+
+            const y = Math.sin(progress * 2 * Math.PI * 3);
+            targetOffset.current.y = y;
+        }
+
+        animate();
+    }
+
+    function shake() {
+        const duration = 1000;
+        const start = performance.now();
+
+        const animate = () => {
+            const progress = (performance.now() - start) / duration;
+            if (progress >= 1) {
+                targetOffset.current.set(0, 0, 10);
+                return;
+            }
+
+            requestAnimationFrame(animate);
+
+            const x = Math.sin(progress * 2 * Math.PI * 3);
+            targetOffset.current.x = x;
+        }
+
+        animate();
+    }
+
+
+
+    return {canvas, mouthOpen, setIsHappy, nod, shake};
 }

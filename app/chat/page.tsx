@@ -8,7 +8,7 @@ import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
 
 export default function Chat() {
-  const {canvas, setMouthOpen} = useHead();
+  const {canvas, mouthOpen, nod} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const {rmsRef, setAudio, audio} = useAudioVolume();
@@ -18,7 +18,7 @@ export default function Chat() {
       let id:number;
       function animate() {
         id = requestAnimationFrame(animate);
-        setMouthOpen(Math.min(rmsRef.current*5,1));
+        mouthOpen.current = Math.min(rmsRef.current*5,1);
       }
 
       animate();
@@ -42,9 +42,10 @@ export default function Chat() {
 
   return (
     <div className="h-screen w-screen flex justify-center items-center">
-      <button onClick={()=>{if (audio) audio.play();}}>PLAY</button>
+      <button onClick={()=>{if (audio) audio.play()}}>PLAY</button>
+      <button onClick={()=>nod()}>NOD</button>
       <div className="bg-gray-900 p-6 rounded-xl flex gap-2">
-        <div ref={canvasContainerRef} className='bg-gray-950 rounded-lg'></div>
+        <div ref={canvasContainerRef} className='bg-gray-950 rounded-lg w-[500px] h-[500px]'></div>
         <div className="bg-gray-700 p-4 rounded-lg select-none">
           <h1 className="mb-1.5">
             Prompt
