@@ -8,10 +8,32 @@ import cn from '@/utils/cn';
 import { useEffect, useRef } from 'react';
 
 export default function Chat() {
-  const {canvas, mouthOpen, nod} = useHead();
+  const {canvas, mouthOpen, nod, setIsHappy, shake} = useHead();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const {rmsRef, setAudio, audio} = useAudioVolume();
+
+  useEffect(()=>{
+    if (!chatbot.functionCallOutput) return;
+    const {name, arguments:args} = chatbot.functionCallOutput;
+    console.log(name,args);
+    switch (name) {
+      case "emote":
+        const {emote} = JSON.parse(args);
+        if (emote === 'nod') nod();
+        if (emote === 'shake') shake();
+        break;
+    
+      case "changeExpression":
+        const {expression} = JSON.parse(args);
+        console.log(expression);
+        setIsHappy(expression === "happy");
+        break;
+
+      default:
+        break;
+    }
+  },[chatbot.functionCallOutput]);
 
   useEffect(()=>{
     if (audio) {
@@ -26,7 +48,7 @@ export default function Chat() {
       return ()=>cancelAnimationFrame(id);
     } else {
       const testAudio = new Audio('/test.mp3');
-      setAudio( testAudio /* chatbot.audioElement */);
+      setAudio( /* testAudio */ chatbot.audioElement);
     }
   },[audio, chatbot]);
 

@@ -2,6 +2,98 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+const sessionUpdate = {
+  type: "session.update",
+  session: {
+    tools:[
+      {
+        type: 'function',
+        name: 'emote',
+        description: 'Choose from a list of emotes to express yourself',
+        parameters: {
+          type: 'object',
+          properties: {
+            emote: {
+              type: 'string',
+              enum: ['nod', 'shake'],
+              description: 'The emote to perform',
+            }
+          }
+        }
+      },
+      {
+        type: 'function',
+        name: 'changeExpression',
+        description: 'Before each response, call this function to set an appropriate emotion for that response.',
+        parameters: {
+          type: 'object',
+          properties: {
+            expression: {
+              type: 'string',
+              enum: ['happy', 'angry'],
+              description: 'The expression to change to',
+            },
+          },
+          required: ['expression'],
+        },
+      }
+    ],
+    tool_choice: 'auto',
+  }
+}
+
+function useTools(
+  isSessionActive: boolean,
+  sendClientEvent: (msg:any) => void,
+  events:any[]
+) {
+  const [functionAdded, setFunctionAdded] = useState(false);
+  const [functionCallOutput, setFunctionCallOutput] = useState<any>();
+
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+
+    const firstEvent = events[events.length - 1];
+    if (!functionAdded && firstEvent.type === "session.created") {
+      sendClientEvent(sessionUpdate);
+      setFunctionAdded(true);
+    }
+
+    const mostRecentEvent = events[0];
+    if (
+      mostRecentEvent.type === "response.done" &&
+      mostRecentEvent.response.output
+    ) {
+      mostRecentEvent.response.output.forEach((output:any) => {
+        if (
+          output.type === "function_call"
+        ) {
+          setFunctionCallOutput(output);
+          setTimeout(() => {
+            sendClientEvent({
+              type: "response.create",
+              response: {
+                instructions: `
+                Please respond to what the user last said to you.
+              `,
+              },
+            });
+          }, 500);
+        }
+      });
+    }
+  }, [events]);
+
+  useEffect(() => {
+    if (!isSessionActive) {
+      setFunctionAdded(false);
+      setFunctionCallOutput(null);
+    }
+  }, [isSessionActive]);
+
+  return {functionCallOutput};
+}
+
 export default function useRealtimeChat() {
   const [prompt, setPrompt] = useState(
     `You are a witty and friendly AI chatbot designed for casual conversation with general users.
@@ -143,6 +235,8 @@ If you don't know something, admit it with charm. Be entertaining, but stay usef
     }
   }, [dataChannel]);
 
+  const {functionCallOutput} = useTools(isSessionActive,sendClientEvent,events);
+
   return {
     isSessionActive,
     startSession,
@@ -154,5 +248,6 @@ If you don't know something, admit it with charm. Be entertaining, but stay usef
     voice,
     setVoice,
     audioElement,
+    functionCallOutput,
   };
 }
