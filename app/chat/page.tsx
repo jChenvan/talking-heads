@@ -30,6 +30,20 @@ export default function Chat() {
     animate();
   }
 
+  const blink = () => {
+    let progress = 0;
+    function animate() {
+      progress += 0.1;
+      setMorphTargets({
+        LeftLid:(progress < 1) ? progress : 2 - progress,
+        RightLid:(progress < 1) ? progress : 2 - progress,
+      })
+      if (progress <= 2) requestAnimationFrame(animate);
+    }
+
+    animate();
+  }
+
   useEffect(()=>{
     if (canvas) {
         canvasContainerRef.current?.appendChild(canvas);
@@ -43,6 +57,13 @@ export default function Chat() {
         }, 1000 / 60 + 1)
 
         canvas.addEventListener("pointermove", onMouseMove);
+
+        const intervalId = setInterval(blink, 5000);
+
+        return () => {
+          canvas.removeEventListener("pointermove", onMouseMove);
+          clearInterval(intervalId);
+        }
     }
   },[canvas])
 
