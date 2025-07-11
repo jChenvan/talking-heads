@@ -57,6 +57,7 @@ export default () => {
         });
         renderer.setSize(500,500);
         renderer.setClearColor(0x000000,0);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const {domElement} = renderer;
         setCanvas(domElement);
