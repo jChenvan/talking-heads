@@ -1,6 +1,5 @@
 "use client";
 
-import throttle from "@/utils/throttle";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -23,7 +22,7 @@ export default () => {
 
         //Adjust Lights
         lights.forEach(l=>{
-            l.intensity = 0.03*l.intensity;
+            l.intensity = 0.01*l.intensity;
         })
 
         return gltf &&{
