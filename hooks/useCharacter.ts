@@ -22,7 +22,7 @@ export default () => {
 
         //Adjust Lights
         lights.forEach(l=>{
-            l.intensity = 0.01*l.intensity;
+            l.intensity = 0.003*l.intensity;
         })
 
         return gltf &&{
