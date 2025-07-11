@@ -54,11 +54,9 @@ export default function Chat() {
   useEffect(()=>{
     if (!chatbot.functionCallOutput) return;
     const {name, arguments:args} = chatbot.functionCallOutput;
-    console.log(name,args);
     switch (name) {
       case "changeExpression":
         const {expression} = JSON.parse(args);
-        console.log(expression);
         setIsHappy(expression === "happy");
         break;
 

@@ -26,8 +26,6 @@ export default () => {
             l.intensity = 0.03*l.intensity;
         })
 
-        console.log(bones);
-
         return gltf &&{
             camera, 
             lights,
@@ -41,7 +39,6 @@ export default () => {
         const gltfLoader = new GLTFLoader();
 
         gltfLoader.load(url,data=>{
-            console.log(data);
             setGltf(data);
         });
     }, []);
