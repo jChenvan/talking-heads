@@ -57,6 +57,8 @@ export default function Chat() {
         }, 1000 / 60 + 1)
 
         canvas.addEventListener("pointermove", onMouseMove);
+        canvas.addEventListener("pointerenter", () => canvas.addEventListener("pointermove", onMouseMove));
+        canvas.addEventListener("pointerleave", () => canvas.removeEventListener("pointermove", onMouseMove));
 
         const intervalId = setInterval(blink, 5000);
 
