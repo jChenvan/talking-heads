@@ -58,6 +58,9 @@ export default () => {
         renderer.setSize(500,500);
         renderer.setClearColor(0x000000,0);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.5;
+
 
         const {domElement} = renderer;
         setCanvas(domElement);
