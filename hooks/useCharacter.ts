@@ -103,14 +103,21 @@ export default () => {
         }
 
         //Setup Animation Loop
+        let animationId:number;
         function animate() {
-            requestAnimationFrame(animate);
+            animationId = requestAnimationFrame(animate);
             if (!sceneData) return;
 
             renderer.render(scene, sceneData.camera);
         }
 
         animate();
+
+        return ()=>{
+            scene.clear();
+            cancelAnimationFrame(animationId);
+        }
+
     },[sceneData]);
 
     return {canvas,
