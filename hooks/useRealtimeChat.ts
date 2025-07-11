@@ -8,21 +8,6 @@ const sessionUpdate = {
     tools:[
       {
         type: 'function',
-        name: 'emote',
-        description: 'Choose from a list of emotes to express yourself',
-        parameters: {
-          type: 'object',
-          properties: {
-            emote: {
-              type: 'string',
-              enum: ['nod', 'shake'],
-              description: 'The emote to perform',
-            }
-          }
-        }
-      },
-      {
-        type: 'function',
         name: 'changeExpression',
         description: 'Before each response, call this function to set an appropriate emotion for that response.',
         parameters: {

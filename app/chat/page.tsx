@@ -1,14 +1,52 @@
 'use client';
 
-import Animation from '@/components/Animation';
 import useAudioVolume from '@/hooks/useAudioVolume';
-import useHead from '@/hooks/useHead';
+import useCharacter from '@/hooks/useCharacter';
 import useRealtimeChat from '@/hooks/useRealtimeChat';
 import cn from '@/utils/cn';
+import throttle from '@/utils/throttle';
 import { useEffect, useRef } from 'react';
 
 export default function Chat() {
-  const {canvas, mouthOpen, nod, setIsHappy, shake} = useHead();
+  const {canvas, setBend, setMorphTargets, setTwist} = useCharacter();
+  const happiness = useRef(1);
+  const mouthOpen = useRef(0);
+
+  const updateMouth = () => {
+    setMorphTargets({
+      HappyOpen: happiness.current * mouthOpen.current,
+      UpsetOpen: (1 - happiness.current) * mouthOpen.current,
+    });
+  }
+
+  const setIsHappy = (isHappy: boolean) => {
+    function animate() {
+      happiness.current += (isHappy ? 1 : -1) * 0.05;
+      if (happiness.current < 0) {happiness.current = 0; return};
+      if (happiness.current > 1) {happiness.current = 1; return};
+      requestAnimationFrame(animate)
+    }
+
+    animate();
+  }
+
+  useEffect(()=>{
+    if (canvas) {
+        canvasContainerRef.current?.appendChild(canvas);
+        const onMouseMove = throttle((e:MouseEvent) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left)/rect.width;
+            const y = (e.clientY - rect.top)/rect.height;
+            
+            setBend(Math.PI/24 - y * Math.PI / 8);
+            setTwist(-Math.PI/24 + x * Math.PI / 12);
+        }, 1000 / 60 + 1)
+
+        canvas.addEventListener("pointermove", onMouseMove);
+    }
+  },[canvas])
+
+
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const chatbot = useRealtimeChat();
   const {rmsRef, setAudio, audio} = useAudioVolume();
@@ -18,12 +56,6 @@ export default function Chat() {
     const {name, arguments:args} = chatbot.functionCallOutput;
     console.log(name,args);
     switch (name) {
-      case "emote":
-        const {emote} = JSON.parse(args);
-        if (emote === 'nod') nod();
-        if (emote === 'shake') shake();
-        break;
-    
       case "changeExpression":
         const {expression} = JSON.parse(args);
         console.log(expression);
@@ -41,14 +73,14 @@ export default function Chat() {
       function animate() {
         id = requestAnimationFrame(animate);
         mouthOpen.current = Math.min(rmsRef.current*5,1);
+        updateMouth();
       }
 
       animate();
 
       return ()=>cancelAnimationFrame(id);
     } else {
-      const testAudio = new Audio('/test.mp3');
-      setAudio( /* testAudio */ chatbot.audioElement);
+      setAudio(chatbot.audioElement);
     }
   },[audio, chatbot]);
 
@@ -64,8 +96,6 @@ export default function Chat() {
 
   return (
     <div className="h-screen w-screen flex justify-center items-center">
-      <button onClick={()=>{if (audio) audio.play()}}>PLAY</button>
-      <button onClick={()=>nod()}>NOD</button>
       <div className="bg-gray-900 p-6 rounded-xl flex gap-2">
         <div ref={canvasContainerRef} className='bg-gray-950 rounded-lg w-[500px] h-[500px]'></div>
         <div className="bg-gray-700 p-4 rounded-lg select-none">
