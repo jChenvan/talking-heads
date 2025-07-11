@@ -5,19 +5,19 @@ import useCharacter from '@/hooks/useCharacter';
 import useRealtimeChat from '@/hooks/useRealtimeChat';
 import cn from '@/utils/cn';
 import throttle from '@/utils/throttle';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export default function Chat() {
   const {canvas, setBend, setMorphTargets, setTwist} = useCharacter();
   const happiness = useRef(1);
   const mouthOpen = useRef(0);
 
-  const updateMouth = () => {
+  const updateMouth = useCallback(() => {
     setMorphTargets({
       HappyOpen: happiness.current * mouthOpen.current,
       UpsetOpen: (1 - happiness.current) * mouthOpen.current,
     });
-  }
+  }, [setMorphTargets]);
 
   const setIsHappy = (isHappy: boolean) => {
     function animate() {
@@ -30,7 +30,7 @@ export default function Chat() {
     animate();
   }
 
-  const blink = () => {
+  const blink = useCallback(() => {
     let progress = 0;
     function animate() {
       progress += 0.1;
@@ -42,10 +42,10 @@ export default function Chat() {
     }
 
     animate();
-  }
+  }, [setMorphTargets]);
 
   useEffect(()=>{
-    if (canvas) {
+    if (canvas && blink && setBend && setTwist ) {
         canvasContainerRef.current?.appendChild(canvas);
         const onMouseMove = throttle((e:MouseEvent) => {
             const rect = canvas.getBoundingClientRect();
@@ -67,7 +67,7 @@ export default function Chat() {
           clearInterval(intervalId);
         }
     }
-  },[canvas])
+  },[canvas, blink, setBend, setTwist])
 
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -103,14 +103,15 @@ export default function Chat() {
     } else {
       setAudio(chatbot.audioElement);
     }
-  },[audio, chatbot]);
+  },[audio, chatbot, rmsRef, setAudio, updateMouth]);
 
   useEffect(()=>{
     if (canvas && canvasContainerRef.current) {
-      canvasContainerRef.current.appendChild(canvas);
+      const canvasElement = canvasContainerRef.current;
+      canvasElement.appendChild(canvas);
 
       return ()=>{
-        canvasContainerRef.current?.removeChild(canvas);
+        canvasElement.removeChild(canvas);
       }
     }
   },[canvas, canvasContainerRef]);

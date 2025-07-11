@@ -65,24 +65,6 @@ export default () => {
         const {domElement} = renderer;
         setCanvas(domElement);
 
-        //Setup Mouse Tracking
-
-        const geo = new THREE.PlaneGeometry(10,10,1,1);
-        const mat = new THREE.MeshBasicMaterial({color:0x00FF00, transparent:true, opacity: 0});
-        const intersectPlane = new THREE.Mesh(geo, mat);
-        scene.add(intersectPlane);
-
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        const onPointerMove = throttle((e:MouseEvent)=>{
-            mouse.x = (e.offsetX / 500) * 2 - 1;
-            mouse.y = -(e.offsetY / 500) * 2 + 1;
-        }, 16);
-
-        domElement.addEventListener("pointerenter", ()=>domElement.addEventListener("pointermove",onPointerMove));
-        domElement.addEventListener("pointerleave", ()=>domElement.removeEventListener("pointermove",onPointerMove));
-
         //Control Function For Blendshapes
         setMorphTargets.current = ({
             HappyOpen,
