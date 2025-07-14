@@ -4,6 +4,6 @@ export const metadata = {
     title: "Realtime Chat",
 }
 
-export default () => {
+export default function ChatPage() {
     return <Chat/>
 }
